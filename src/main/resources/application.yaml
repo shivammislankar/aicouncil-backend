@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: aicouncil
+
+  security:
+    user:
+      name: disabled
+      password: disabled
+  profiles:
+    active: test
+
+  datasource:
+    url: jdbc:h2:file:./data/aicouncil
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+
+# 🔑 Gemini configuration (TOP LEVEL)
+gemini:
+  api-key: ${GEMINI_API_KEY}
+  model: gemini-1.5-flash
+
+
+# 🧠 Ollama (can keep for fallback / dev)
+ollama:
+  base-url: http://localhost:11434
+  model: llama3.2:3b
