@@ -35,3 +35,7 @@ build/
 .env
 *.log
 application-local.yml
+
+# Never commit Firebase credentials
+firebase-service-account.json
+serviceAccount*.json

@@ -20,13 +20,13 @@ spring:
       ddl-auto: update
 
 
-# 🔑 Gemini configuration (TOP LEVEL)
-gemini:
-  api-key: ${GEMINI_API_KEY}
-  model: gemini-1.5-flash
+# Cloud platforms (Railway/Render) inject $PORT; default to 8080 locally
+server:
+  port: ${PORT:8080}
 
-
-# 🧠 Ollama (can keep for fallback / dev)
-ollama:
-  base-url: http://localhost:11434
-  model: llama3.2:3b
+# 🔑 OpenRouter configuration
+openrouter:
+  api-key: ${OPENROUTER_API_KEY}
+  base-url: https://openrouter.ai/api/v1
+  # Fastest verified free model (benchmark: ~8s/agent vs ~41s for openrouter/free)
+  model: poolside/laguna-s-2.1:free

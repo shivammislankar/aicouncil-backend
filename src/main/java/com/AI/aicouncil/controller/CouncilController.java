@@ -1,6 +1,5 @@
 package com.AI.aicouncil.controller;
 
-import com.AI.aicouncil.context.RequestContext;
 import com.AI.aicouncil.dto.CouncilRequest;
 import com.AI.aicouncil.model.CouncilResponse;
 import com.AI.aicouncil.service.CouncilService;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 @RestController
 @RequestMapping("/api/council")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {"http://localhost:5173", "https://ai-council.vercel.app"})
 public class CouncilController {
 
     private final CouncilService councilService;

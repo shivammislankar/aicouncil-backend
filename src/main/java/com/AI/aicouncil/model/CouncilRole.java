@@ -5,4 +5,5 @@ public enum CouncilRole {
     STRATEGIST,
     CRITIC,
     OPTIMIZER,
+    GREETING
 }
