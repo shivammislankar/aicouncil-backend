@@ -32,6 +32,8 @@ public interface SynthesizerAi {
     70-89 = minor disagreements or manageable caveats
     50-69 = notable conflicts between roles or major caveats
     below 50 = roles strongly disagreed or key information is missing
+    Choose the number deliberately from the actual degree of alignment in THIS
+    council's input — do not reuse the same score across different responses.
     Nothing may follow this line.
     """)
     String synthesize(@UserMessage String input);

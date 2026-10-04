@@ -24,9 +24,19 @@ spring:
 server:
   port: ${PORT:8080}
 
-# 🔑 OpenRouter configuration
-openrouter:
-  api-key: ${OPENROUTER_API_KEY}
-  base-url: https://openrouter.ai/api/v1
-  # Fastest verified free model (benchmark: ~8s/agent vs ~41s for openrouter/free)
-  model: poolside/laguna-s-2.1:free
+# 🔑 LLM configuration — ordered provider chain with automatic failover.
+# Both are OpenAI-compatible endpoints on free tiers (no card required).
+llm:
+  gemini:
+    # Google Gemini free tier: only ~20 requests/day PER MODEL
+    # (GenerateRequestsPerDayPerProjectPerModel-FreeTier) — so we rotate
+    # across every available model; FallbackChatModel skips any that is
+    # currently rate-limited without even making the call.
+    base-url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api-key: ${GEMINI_API_KEY}
+    models: gemini-3.5-flash-lite, gemini-3.7-flash, gemini-3.6-flash, gemini-3.5-flash, gemini-3.8-flash
+  groq:
+    # Groq free tier: 1,000 requests/day on gpt-oss-120b — final safety net.
+    base-url: https://api.groq.com/openai/v1
+    api-key: ${GROQ_API_KEY}
+    model: openai/gpt-oss-120b

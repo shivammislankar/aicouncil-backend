@@ -20,9 +20,10 @@ public class CouncilService {
 
     private static final Logger log = LoggerFactory.getLogger(CouncilService.class);
 
-    /** Matches the trailing "CONFIDENCE: NN" line the synthesizer is instructed to append. */
+    /** Matches the trailing "CONFIDENCE: NN" line the synthesizer is instructed to append.
+     *  Tolerates markdown bold markers (**CONFIDENCE: 85**) that models sometimes wrap it in. */
     private static final Pattern CONFIDENCE_LINE = Pattern.compile(
-            "(?im)^[ \\t]*CONFIDENCE:[ \\t]*(\\d{1,3})(?:[ \\t]*/[ \\t]*100)?%?[ \\t]*\\.?[ \\t]*$");
+            "(?im)^[ \\t*]*CONFIDENCE:[ \\t]*(\\d{1,3})(?:[ \\t]*/[ \\t]*100)?%?[ \\t*\\.]*$");
 
     private static final int DEFAULT_CONFIDENCE = 85;
 
