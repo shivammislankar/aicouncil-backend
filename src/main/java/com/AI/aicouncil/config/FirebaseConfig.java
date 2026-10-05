@@ -25,7 +25,18 @@ public class FirebaseConfig {
             String serviceAccountPath = System.getenv("FIREBASE_SERVICE_ACCOUNT_PATH");
             InputStream serviceAccount;
             if (serviceAccountJson != null && !serviceAccountJson.isBlank()) {
-                serviceAccount = new ByteArrayInputStream(serviceAccountJson.getBytes(StandardCharsets.UTF_8));
+                String payload = serviceAccountJson.trim();
+                // Strip a UTF-8 BOM if the value was pasted from a file/editor that added one
+                if (!payload.isEmpty() && payload.charAt(0) == '\uFEFF') {
+                    payload = payload.substring(1).trim();
+                }
+                if (!payload.startsWith("{")) {
+                    throw new IllegalStateException(
+                            "FIREBASE_SERVICE_ACCOUNT_JSON does not look like a service-account JSON object. "
+                                    + "length=" + payload.length()
+                                    + ", first 60 chars=" + payload.substring(0, Math.min(60, payload.length())));
+                }
+                serviceAccount = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
             } else if (serviceAccountPath != null) {
                 serviceAccount = new FileInputStream(serviceAccountPath);
             } else {
