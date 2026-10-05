@@ -8,6 +8,9 @@ public class CouncilResponse {
     private Map<CouncilRole, String> flow;
     private String finalAnswer;
     private int confidence;
+    /** True when the input was a greeting/trivial message, so clients can
+     *  skip persisting it to chat history. */
+    private boolean greeting;
 
     public CouncilResponse(
             String question,
@@ -19,6 +22,21 @@ public class CouncilResponse {
         this.flow = flow;
         this.finalAnswer = finalAnswer;
         this.confidence = confidence;
+        this.greeting = false;
+    }
+
+    public CouncilResponse(
+            String question,
+            Map<CouncilRole, String> flow,
+            String finalAnswer,
+            int confidence,
+            boolean greeting
+    ) {
+        this.question = question;
+        this.flow = flow;
+        this.finalAnswer = finalAnswer;
+        this.confidence = confidence;
+        this.greeting = greeting;
     }
 
     public String getQuestion() {
@@ -35,5 +53,9 @@ public class CouncilResponse {
 
     public int getConfidence() {
         return confidence;
+    }
+
+    public boolean isGreeting() {
+        return greeting;
     }
 }

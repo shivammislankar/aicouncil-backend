@@ -53,18 +53,75 @@ public class CouncilService {
         this.currentUser=currentUser;
     }
 
+    /** Trivial, non-substantive inputs that shouldn't cost a full council run.
+     *  Matched after normalizing case/whitespace and stripping trailing punctuation. */
     private static final java.util.Set<String> GREETINGS = java.util.Set.of(
-            "hi", "hello", "hey", "yo", "sup", "hola",
-            "good morning", "good afternoon", "good evening",
-            "howdy", "greetings", "what's up", "wassup"
+            // core salutations
+            "hi", "hello", "hey", "heya", "hiya", "yo", "sup", "hola",
+            "howdy", "greetings", "hi there", "hey there", "hello there",
+            // time-based
+            "good morning", "good afternoon", "good evening", "good night", "good day",
+            // small talk
+            "how are you", "how are you doing", "how are you today",
+            "how r you", "how r u", "how are u", "how ru",
+            "how do you do", "how's it going", "hows it going", "how is it going",
+            "what's up", "whats up", "wassup", "what up",
+            "what's new", "whats new", "how have you been",
+            // acknowledgements / pleasantries
+            "good", "nice", "cool", "awesome", "great", "fine", "ok", "okay", "k",
+            "thanks", "thank you", "thx", "ty", "please",
+            "bye", "goodbye", "see you", "see ya", "later", "cya",
+            "yes", "yeah", "yep", "no", "nope", "sure"
     );
 
-    private boolean isGreeting(String question) {
+    /** Words allowed to follow a greeting opener ("hi there", "hello everyone"). */
+    private static final java.util.Set<String> GREETING_FILLERS = java.util.Set.of(
+            "there", "all", "everyone", "guys", "guy", "team", "people", "folks",
+            "friend", "friends", "world", "ya", "u", "veritas", "bot", "ai",
+            "sir", "mate", "buddy", "again"
+    );
+
+    /** Leading words that may start a greeting ("good morning team"). */
+    private static final java.util.List<String> GREETING_OPENERS = java.util.List.of(
+            "good morning", "good afternoon", "good evening", "good night", "good day",
+            "thanks", "thank you", "hello", "hey", "heya", "hiya", "hi",
+            "howdy", "greetings", "bye", "goodbye", "yo"
+    );
+
+    /**
+     * Returns true for greetings and other trivial inputs that carry no
+     * question for the council to answer (e.g. "hi", "good", "how are you
+     * doing", "hello everyone"). Deliberately conservative: anything that
+     * isn't in the known set falls through to the full council.
+     */
+    static boolean isGreeting(String question) {
         if (question == null || question.isBlank()) return false;
+
         String normalized = question.toLowerCase()
                 .trim()
-                .replaceAll("[!?.]+$", "");
-        return GREETINGS.contains(normalized);
+                .replaceAll("[!?.]+$", "")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        if (normalized.isEmpty()) return false;
+        if (GREETINGS.contains(normalized)) return true;
+
+        // Greeting opener + only filler words after it: "hi there", "hello everyone"
+        for (String opener : GREETING_OPENERS) {
+            if (!normalized.startsWith(opener + " ")) continue;
+            String rest = normalized.substring(opener.length() + 1);
+            if (rest.isEmpty()) return true;
+            if (GREETINGS.contains(rest)) return true; // "hi how are you"
+            boolean onlyFillers = true;
+            for (String word : rest.split(" ")) {
+                if (!GREETING_FILLERS.contains(word)) {
+                    onlyFillers = false;
+                    break;
+                }
+            }
+            if (onlyFillers) return true;
+        }
+        return false;
     }
 
     /**
@@ -135,7 +192,8 @@ public class CouncilService {
                     question,
                     Map.of(CouncilRole.GREETING, "Hello! How can I help you today?"),
                     "Hello! I'm Veritas. Ask me anything and I'll gather insights from all my agents.",
-                    100
+                    100,
+                    true
             );
         }
 
