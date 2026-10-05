@@ -134,7 +134,7 @@ public class CouncilService {
             return new CouncilResponse(
                     question,
                     Map.of(CouncilRole.GREETING, "Hello! How can I help you today?"),
-                    "Hello! I'm the AI Council. Ask me anything and I'll gather insights from all my agents.",
+                    "Hello! I'm Veritas. Ask me anything and I'll gather insights from all my agents.",
                     100
             );
         }

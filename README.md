@@ -1,8 +1,8 @@
-# 🧠 AI Council — Backend
+# 🧠 Veritas — Backend
 
-AI Council is a **multi-agent AI decision system** built with **Spring Boot** that simulates a council of expert personas (Analyst, Strategist, Critic, Optimizer, Synthesizer) to generate **structured, high-quality answers** for complex questions.
+Veritas is a **multi-agent AI decision system** built with **Spring Boot** that simulates a council of expert personas (Analyst, Strategist, Critic, Optimizer, Synthesizer) to generate **structured, high-quality answers** for complex questions.
 
-This repository contains the **backend service** powering the AI Council.
+This repository contains the **backend service** powering Veritas.
 
 ---
 
