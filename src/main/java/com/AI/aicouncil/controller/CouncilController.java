@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 @RestController
 @RequestMapping("/api/council")
-@CrossOrigin(origins = {"http://localhost:5173", "https://ai-council.vercel.app"})
+@CrossOrigin(origins = {"http://localhost:5173", "https://ai-council.vercel.app", "https://aicouncil-one-livid.vercel.app"})
 public class CouncilController {
 
     private final CouncilService councilService;
