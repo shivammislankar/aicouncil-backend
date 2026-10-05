@@ -3,6 +3,7 @@
 services:
   - type: web
     name: aicouncil-backend
+    runtime: java
     plan: free
     region: oregon
     buildCommand: mvn -DskipTests clean package
