@@ -19,10 +19,37 @@ spring:
     hibernate:
       ddl-auto: update
 
+  # --- Email OTP verification -------------------------------------------
+  # Gmail SMTP with an App Password (no credit card, no custom domain).
+  # Nothing here sends until OTP_ENABLED=true, so a deploy can never break
+  # sign-ups while the credentials are still missing.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
 
 # Cloud platforms (Railway/Render) inject $PORT; default to 8080 locally
 server:
   port: ${PORT:8080}
+
+otp:
+  enabled: ${OTP_ENABLED:false}
+  # Codes live for 10 minutes and allow 5 wrong guesses before expiring.
+  ttl-seconds: ${OTP_TTL_SECONDS:600}
+  max-attempts: ${OTP_MAX_ATTEMPTS:5}
+  from: ${MAIL_FROM:${MAIL_USERNAME:}}
+  # How many codes one account may request inside the resend window.
+  max-requests-per-window: ${OTP_MAX_REQUESTS:3}
+  resend-window-seconds: ${OTP_RESEND_WINDOW:600}
+
 
 # 🔑 LLM configuration — ordered provider chain with automatic failover.
 # Both are OpenAI-compatible endpoints on free tiers (no card required).

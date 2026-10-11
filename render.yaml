@@ -19,3 +19,11 @@ services:
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
+      # Email OTP via Gmail SMTP. Leave OTP_ENABLED=false until a Gmail App
+      # Password exists; the app runs fine without verification meanwhile.
+      - key: OTP_ENABLED
+        value: "false"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false

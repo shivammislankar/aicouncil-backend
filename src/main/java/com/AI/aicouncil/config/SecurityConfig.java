@@ -26,6 +26,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // ✅ preflight
+                        .requestMatchers("/api/auth/otp/request").permitAll() // public: requesting a code needs no session
                         .requestMatchers("/api/council/**").authenticated()
                         .anyRequest().permitAll()
                 )

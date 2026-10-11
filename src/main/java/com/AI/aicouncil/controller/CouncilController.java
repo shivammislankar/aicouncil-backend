@@ -4,6 +4,7 @@ import com.AI.aicouncil.dto.CouncilRequest;
 import com.AI.aicouncil.model.CouncilResponse;
 import com.AI.aicouncil.security.UserRateLimiter;
 import com.AI.aicouncil.service.CouncilService;
+import com.AI.aicouncil.service.OtpService;
 import com.google.firebase.auth.FirebaseToken;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,10 +19,12 @@ public class CouncilController {
 
     private final CouncilService councilService;
     private final UserRateLimiter rateLimiter;
+    private final OtpService otpService;
 
-    public CouncilController(CouncilService councilService, UserRateLimiter rateLimiter) {
+    public CouncilController(CouncilService councilService, UserRateLimiter rateLimiter, OtpService otpService) {
         this.councilService = councilService;
         this.rateLimiter = rateLimiter;
+        this.otpService = otpService;
     }
 
     @PostMapping("/ask")
@@ -49,8 +52,19 @@ public class CouncilController {
                     ));
         }
 
+        // Password accounts must prove their address first. OAuth arrivals
+        // (GitHub) are marked verified at sign-in, so they sail through.
+        if (!otpService.isVerified(email)) {
+            return ResponseEntity
+                    .status(403)
+                    .body(Map.of(
+                            "error", "EMAIL_NOT_VERIFIED",
+                            "message", "Verify your email address before asking the council."
+                    ));
+        }
+
         return ResponseEntity.ok(Map.of(
-                "user", email,
+                "user", email != null ? email : uid,
                 "payload", councilService.processQuestion(request.getQuestion())
         ));
     }
