@@ -171,4 +171,11 @@ class OtpServiceTest {
         }
         throw new IllegalStateException("code not recoverable");
     }
+
+    @Test
+    void firebaseVerifiedFlagCountsEvenWithoutALocalRow() {
+        // Simulates a redeploy that wiped the local database.
+        assertTrue(service.isVerified("wiped@example.com", true));
+        assertFalse(service.isVerified("wiped@example.com", false));
+    }
 }

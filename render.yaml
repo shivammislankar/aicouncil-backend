@@ -21,9 +21,15 @@ services:
         sync: false
       # Email OTP via Gmail SMTP. Leave OTP_ENABLED=false until a Gmail App
       # Password exists; the app runs fine without verification meanwhile.
+      # NOTE: while this is "false", email verification is OFF and every
+      # account can use the council. Set it to "true" in the Render dashboard
+      # once MAIL_USERNAME / MAIL_PASSWORD are filled in.
       - key: OTP_ENABLED
         value: "false"
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
         sync: false
+      # Optional: comma-separated frontend origins allowed by CORS.
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://ai-council-one-livid.vercel.app"

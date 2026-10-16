@@ -33,8 +33,7 @@ public class FirebaseConfig {
                 if (!payload.startsWith("{")) {
                     throw new IllegalStateException(
                             "FIREBASE_SERVICE_ACCOUNT_JSON does not look like a service-account JSON object. "
-                                    + "length=" + payload.length()
-                                    + ", first 60 chars=" + payload.substring(0, Math.min(60, payload.length())));
+                                    + "length=" + payload.length()); // never log the secret itself
                 }
                 serviceAccount = new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8));
             } else if (serviceAccountPath != null) {

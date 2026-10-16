@@ -69,3 +69,19 @@ This repository contains the **backend service** powering Veritas.
 
 
 
+
+## Security & quota settings
+
+All optional; defaults shown.
+
+| Env var | Default | Purpose |
+|---|---|---|
+| `CORS_ALLOWED_ORIGINS` | `https://ai-council-one-livid.vercel.app` | Comma-separated frontend origins. Add `http://localhost:5173` for local dev. |
+| `RATE_LIMIT_MAX_PER_WINDOW` / `RATE_LIMIT_WINDOW_SECONDS` | `5` / `60` | Burst limit per user. |
+| `RATE_LIMIT_PER_USER_DAILY` | `25` | Questions per user per UTC day. |
+| `RATE_LIMIT_GLOBAL_DAILY` | `200` | Questions per UTC day for the whole site (protects free LLM quota). |
+| `COUNCIL_TIME_BUDGET_SECONDS` | `150` | Hard cap on one council run. |
+| `OTP_MAX_EMAILS_PER_DAY` | `300` | Verification emails per UTC day, site-wide (Gmail limit is ~500). |
+
+Verified emails are written to Firebase (`emailVerified`), so they survive
+redeploys; the local H2 database only holds short-lived OTP codes.
