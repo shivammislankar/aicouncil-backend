@@ -6,8 +6,6 @@ spring:
     user:
       name: disabled
       password: disabled
-  profiles:
-    active: test
 
   datasource:
     url: jdbc:h2:file:./data/aicouncil
@@ -39,6 +37,26 @@ spring:
 # Cloud platforms (Railway/Render) inject $PORT; default to 8080 locally
 server:
   port: ${PORT:8080}
+  # Render terminates TLS and forwards the client address in X-Forwarded-For.
+  forward-headers-strategy: framework
+
+app:
+  cors:
+    # Comma-separated. Add http://localhost:5173 locally via CORS_ALLOWED_ORIGINS.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://ai-council-one-livid.vercel.app}
+
+# Abuse / quota protection for POST /api/council/ask.
+# Each question costs ~5 LLM calls; the free tiers give the whole site a few
+# hundred calls a day, so these defaults keep one account from draining it.
+rate-limit:
+  window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+  max-per-window: ${RATE_LIMIT_MAX_PER_WINDOW:5}
+  per-user-daily: ${RATE_LIMIT_PER_USER_DAILY:25}
+  global-daily: ${RATE_LIMIT_GLOBAL_DAILY:200}
+
+council:
+  # Hard cap on one council run (all five stages, retries included).
+  time-budget-seconds: ${COUNCIL_TIME_BUDGET_SECONDS:150}
 
 otp:
   enabled: ${OTP_ENABLED:false}
@@ -49,6 +67,8 @@ otp:
   # How many codes one account may request inside the resend window.
   max-requests-per-window: ${OTP_MAX_REQUESTS:3}
   resend-window-seconds: ${OTP_RESEND_WINDOW:600}
+  # Site-wide cap on verification emails per UTC day (Gmail allows ~500/day).
+  max-emails-per-day: ${OTP_MAX_EMAILS_PER_DAY:300}
 
 
 # 🔑 LLM configuration — ordered provider chain with automatic failover.

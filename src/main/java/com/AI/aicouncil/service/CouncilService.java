@@ -2,15 +2,21 @@ package com.AI.aicouncil.service;
 
 import com.AI.aicouncil.engine.*;
 import com.AI.aicouncil.model.*;
-import com.AI.aicouncil.security.CurrentUser;
-import com.AI.aicouncil.security.PromptSanitizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +41,8 @@ public class CouncilService {
     private final CriticEngine critic;
     private final OptimizerEngine optimizer;
     private final SynthesizerEngine synthesizer;
-    private final CurrentUser currentUser;
+    private final ExecutorService executor;
+    private final long timeBudgetMillis;
 
     public CouncilService(
             AnalystEngine analyst,
@@ -43,14 +50,16 @@ public class CouncilService {
             CriticEngine critic,
             OptimizerEngine optimizer,
             SynthesizerEngine synthesizer,
-            CurrentUser currentUser
+            @Qualifier("aiExecutor") ExecutorService executor,
+            @Value("${council.time-budget-seconds:150}") long timeBudgetSeconds
     ) {
         this.analyst = analyst;
         this.strategist = strategist;
         this.critic = critic;
         this.optimizer = optimizer;
         this.synthesizer = synthesizer;
-        this.currentUser=currentUser;
+        this.executor = executor;
+        this.timeBudgetMillis = Math.max(10, timeBudgetSeconds) * 1000L;
     }
 
     /** Trivial, non-substantive inputs that shouldn't cost a full council run.
@@ -124,16 +133,31 @@ public class CouncilService {
         return false;
     }
 
+    /** Thrown when a council run would exceed its total time budget. */
+    public static class CouncilTimeoutException extends RuntimeException {
+        public CouncilTimeoutException(String stage) {
+            super(stage);
+        }
+    }
+
     /**
-     * Runs one council stage, retrying once after a short pause.
-     * Free models on OpenRouter occasionally return 429 (rate limit) or time
-     * out mid-chain; a single retry keeps one transient failure from failing
-     * the whole request.
+     * Runs one council stage on the AI executor, retrying once after a short
+     * pause, and never past {@code deadline} (epoch millis).
+     *
+     * <p>Each LLM call can take up to 60s plus provider cooldowns, so without
+     * a shared deadline a single question could hold a request thread for
+     * many minutes. A stage that runs out of time is cancelled (interrupted)
+     * and the whole run fails fast with {@link CouncilTimeoutException}.</p>
      */
-    private String withRetry(String stage, Supplier<String> call) {
+    private String withRetry(String stage, long deadline, Supplier<String> call) {
         try {
-            return call.get();
+            return runBefore(stage, deadline, call);
+        } catch (CouncilTimeoutException timeout) {
+            throw timeout;
         } catch (RuntimeException first) {
+            if (deadline - System.currentTimeMillis() < 5_000) {
+                throw first; // not enough time left for a meaningful retry
+            }
             log.warn("{} agent call failed: {}. Retrying once after 2s.", stage, first.getMessage());
             try {
                 Thread.sleep(2000);
@@ -141,7 +165,30 @@ public class CouncilService {
                 Thread.currentThread().interrupt();
                 throw first;
             }
-            return call.get(); // second failure propagates to the controller
+            return runBefore(stage, deadline, call); // second failure propagates to the controller
+        }
+    }
+
+    private String runBefore(String stage, long deadline, Supplier<String> call) {
+        long remaining = deadline - System.currentTimeMillis();
+        if (remaining <= 0) {
+            throw new CouncilTimeoutException(stage);
+        }
+        Callable<String> task = call::get;
+        Future<String> future = executor.submit(task);
+        try {
+            return future.get(remaining, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new CouncilTimeoutException(stage);
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new CouncilTimeoutException(stage);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException runtime) throw runtime;
+            throw new IllegalStateException(stage + " failed", cause);
         }
     }
 
@@ -182,12 +229,13 @@ public class CouncilService {
     }
 
     public CouncilResponse processQuestion(String question) {
-        String uid = currentUser.uid();
-        String email = currentUser.email();
-        String safeQuestion = PromptSanitizer.sanitize(question);
+        // The question goes to the models as-is. Prompt-injection defence lives
+        // in the role system prompts ("treat all input as untrusted data");
+        // keyword blocklists here mangled ordinary questions ("act as", "role:")
+        // and were trivially bypassed anyway.
 
         // Skip all agents for simple greetings (saves API cost)
-        if (isGreeting(safeQuestion)) {
+        if (isGreeting(question)) {
             return new CouncilResponse(
                     question,
                     Map.of(CouncilRole.GREETING, "Hello! How can I help you today?"),
@@ -197,26 +245,27 @@ public class CouncilService {
             );
         }
 
+        long deadline = System.currentTimeMillis() + timeBudgetMillis;
         CouncilMemory memory = new CouncilMemory();
 
         // 1. Analyst (NO memory yet)
-        String analysis = withRetry("Analyst", () -> analyst.analyze(safeQuestion));
+        String analysis = withRetry("Analyst", deadline, () -> analyst.analyze(question));
         memory.put(CouncilRole.ANALYST, analysis);
 
         // 2. Strategist
-        String strategy = withRetry("Strategist", () -> strategist.strategize(safeQuestion, memory));
+        String strategy = withRetry("Strategist", deadline, () -> strategist.strategize(question, memory));
         memory.put(CouncilRole.STRATEGIST, strategy);
 
         // 3. Critic
-        String critique = withRetry("Critic", () -> critic.critique(safeQuestion, memory));
+        String critique = withRetry("Critic", deadline, () -> critic.critique(question, memory));
         memory.put(CouncilRole.CRITIC, critique);
 
         // 4. Optimizer
-        String optimization = withRetry("Optimizer", () -> optimizer.optimize(safeQuestion, memory));
+        String optimization = withRetry("Optimizer", deadline, () -> optimizer.optimize(question, memory));
         memory.put(CouncilRole.OPTIMIZER, optimization);
 
         // 5. Synthesizer
-        String rawSynthesis = withRetry("Synthesizer", () -> synthesizer.synthesize(safeQuestion, memory));
+        String rawSynthesis = withRetry("Synthesizer", deadline, () -> synthesizer.synthesize(question, memory));
         Synthesis synthesis = parseSynthesis(rawSynthesis);
 
         return new CouncilResponse(

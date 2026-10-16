@@ -1,0 +1,46 @@
+name: Backend tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # The Spring context test starts the whole app, which needs Firebase
+      # credentials and LLM keys. Throwaway values are enough: nothing here
+      # talks to Firebase, Gemini or Groq, and no real secret is used.
+      - name: Create throwaway Firebase service account
+        run: |
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem 2>/dev/null
+          python3 - <<'PY' > "$RUNNER_TEMP/sa.json"
+          import json
+          key = open("key.pem").read()
+          print(json.dumps({
+              "type": "service_account",
+              "project_id": "ci-dummy",
+              "private_key_id": "ci",
+              "private_key": key,
+              "client_email": "ci@ci-dummy.iam.gserviceaccount.com",
+              "client_id": "0",
+              "token_uri": "https://oauth2.googleapis.com/token",
+          }))
+          PY
+          rm key.pem
+          echo "FIREBASE_SERVICE_ACCOUNT_PATH=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+      - name: Run tests
+        env:
+          GEMINI_API_KEY: ci-dummy
+          GROQ_API_KEY: ci-dummy
+        run: mvn -B test

@@ -79,6 +79,20 @@ public class OtpService {
                 .orElse(false);
     }
 
+    /**
+     * Verification check that also trusts Firebase's own durable flag.
+     *
+     * <p>{@code firebaseEmailVerified} comes from the caller's verified ID
+     * token ({@code email_verified} claim). Once the OTP or OAuth flow has set
+     * it in Firebase, it survives redeploys, unlike the local H2 row.</p>
+     */
+    @Transactional(readOnly = true)
+    public boolean isVerified(String email, boolean firebaseEmailVerified) {
+        if (!enabled) return true;
+        if (firebaseEmailVerified) return true;
+        return isVerified(email);
+    }
+
     /** Marks an address verified without a code (verified OAuth providers). */
     @Transactional
     public void markVerified(String email) {
