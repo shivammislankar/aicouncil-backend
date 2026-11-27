@@ -178,4 +178,27 @@ class OtpServiceTest {
         assertTrue(service.isVerified("wiped@example.com", true));
         assertFalse(service.isVerified("wiped@example.com", false));
     }
+
+    @Test
+    void sendsThroughBrevoWhenConfiguredInsteadOfSmtp() {
+        BrevoEmailClient brevo = org.mockito.Mockito.mock(BrevoEmailClient.class);
+        org.mockito.Mockito.when(brevo.isConfigured()).thenReturn(true);
+        service.setBrevoEmailClient(brevo);
+
+        service.requestCode("api@example.com");
+
+        verify(brevo).send(org.mockito.ArgumentMatchers.eq("api@example.com"),
+                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+        org.mockito.Mockito.verifyNoInteractions(mailSender);
+    }
+
+    @Test
+    void fallsBackToSmtpWhenBrevoNotConfigured() {
+        BrevoEmailClient brevo = new BrevoEmailClient("", "", "Veritas");
+        service.setBrevoEmailClient(brevo);
+
+        service.requestCode("smtp@example.com");
+
+        verify(mailSender).send(org.mockito.ArgumentMatchers.any(SimpleMailMessage.class));
+    }
 }

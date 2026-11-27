@@ -8,6 +8,8 @@ import com.google.firebase.auth.FirebaseToken;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,6 +32,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final OtpService otpService;
     private final UserRateLimiter rateLimiter;
@@ -92,6 +96,8 @@ public class AuthController {
                     "error", "Too many codes requested. New codes are available again in 10 minutes."));
         } catch (Exception e) {
             emailQuota.refund(user.getUid());
+            // Logged so a broken mail setup is visible in the host's logs.
+            log.warn("OTP email send failed: {}", e.toString());
             // Mail failures stay generic: the cause (bad credentials, quota) is
             // ours to fix, not the visitor's to debug.
             return ResponseEntity.status(502).body(Map.of(

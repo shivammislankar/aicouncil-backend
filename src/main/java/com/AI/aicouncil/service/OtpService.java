@@ -4,6 +4,7 @@ import com.AI.aicouncil.model.EmailVerification;
 import com.AI.aicouncil.repository.EmailVerificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -59,6 +60,14 @@ public class OtpService {
         this.from = from;
         this.maxRequestsPerWindow = maxRequestsPerWindow;
         this.resendWindowSeconds = resendWindowSeconds;
+    }
+
+    /** Preferred transport on hosts that block SMTP (Render free tier). Optional for tests. */
+    private BrevoEmailClient brevo;
+
+    @Autowired(required = false)
+    public void setBrevoEmailClient(BrevoEmailClient brevo) {
+        this.brevo = brevo;
     }
 
     public boolean isEnabled() {
@@ -199,15 +208,23 @@ public class OtpService {
     }
 
     private void sendEmail(String to, String code) {
+        String subject = "Your Veritas verification code";
+        String text = "Your Veritas verification code is:\n\n"
+                + "    " + code + "\n\n"
+                + "It expires in 10 minutes. If you didn't create a Veritas account, "
+                + "ignore this email — no account will be activated without the code.";
+
+        // HTTPS API first: Render's free tier blocks outbound SMTP ports.
+        if (brevo != null && brevo.isConfigured()) {
+            brevo.send(to, subject, text);
+            return;
+        }
+
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(to);
-        message.setSubject("Your Veritas verification code");
-        message.setText(
-                "Your Veritas verification code is:\n\n"
-                        + "    " + code + "\n\n"
-                        + "It expires in 10 minutes. If you didn't create a Veritas account, "
-                        + "ignore this email — no account will be activated without the code.");
+        message.setSubject(subject);
+        message.setText(text);
         mailSender.send(message);
     }
 

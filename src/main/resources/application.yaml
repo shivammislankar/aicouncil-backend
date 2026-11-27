@@ -69,6 +69,13 @@ otp:
   resend-window-seconds: ${OTP_RESEND_WINDOW:600}
   # Site-wide cap on verification emails per UTC day (Gmail allows ~500/day).
   max-emails-per-day: ${OTP_MAX_EMAILS_PER_DAY:300}
+  from-name: ${MAIL_FROM_NAME:Veritas}
+
+# Brevo HTTPS email API. Render's free tier blocks SMTP ports (25/465/587),
+# so production sends through this instead of Gmail SMTP. MAIL_FROM (or
+# MAIL_USERNAME) must be a verified sender in Brevo.
+brevo:
+  api-key: ${BREVO_API_KEY:}
 
 
 # 🔑 LLM configuration — ordered provider chain with automatic failover.
